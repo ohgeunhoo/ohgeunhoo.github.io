@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오근후 — Future Portfolio 2035</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<!-- =========================================================
+     CSS : 디자인 담당
+     ========================================================= -->
+<style>
+  :root {
+    --bg: #f5f3ee;
+    --fg: #151515;
+    --muted: #8b877f;
+    --grid: rgba(21, 21, 21, 0.09);
+    --panel: #ffffff;
+    --chip: #f1eee8;
+    --accent: #ff6a3d;
+    --sans: "Inter", "Noto Sans KR", sans-serif;
+    --kr: "Noto Sans KR", "Inter", sans-serif;
+    --serif: "Instrument Serif", "Noto Serif KR", serif;
+  }
+  [data-theme="dark"] {
+    --bg: #0d0d0d;
+    --fg: #f1efea;
+    --muted: #8a867f;
+    --grid: rgba(255, 255, 255, 0.08);
+    --panel: #181818;
+    --chip: #262626;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--sans);
+    overflow: hidden;
+    transition: background .6s ease, color .6s ease;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------- 인트로 로더 ---------- */
+  .loader {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    transition: transform 1s cubic-bezier(.8,0,.2,1);
+  }
+  .loader.done { transform: translateY(-100%); }
+  .loader small { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .loader .year { font-family: var(--serif); font-size: clamp(90px, 18vw, 240px); line-height: 1; letter-spacing: -.03em; }
+  .loader .bar { width: 180px; height: 1px; background: var(--grid); overflow: hidden; }
+  .loader .bar i { display: block; height: 100%; width: 0; background: var(--fg); transition: width 1.6s ease; }
+
+  /* ---------- 네 모서리 UI ---------- */
+  .corner {
+    position: fixed; z-index: 20;
+    font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .tl { top: 32px; left: 5vw; }
+  .tc { top: 32px; left: 50%; transform: translateX(-50%); color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .tc::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 1.4s infinite; }
+  .tr { top: 32px; right: 5vw; }
+  .bl { bottom: 32px; left: 5vw; display: flex; gap: 6px; }
+  .br { bottom: 32px; right: 5vw; }
+  .bc { bottom: 32px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; align-items: baseline; }
+  .bc .idx { font-variant-numeric: tabular-nums; }
+  .bc .name { color: var(--muted); }
+  .bl button { text-transform: uppercase; letter-spacing: inherit; font-weight: 500; color: var(--muted); transition: color .3s; }
+  .bl button.active, .bl button:hover { color: var(--fg); }
+  .link:not(.corner) { position: relative; }
+  .link::after {
+    content: ""; position: absolute; left: 0; bottom: -3px; width: 0; height: 1px;
+    background: currentColor; transition: width .35s ease;
+  }
+  .link:hover::after { width: 100%; }
+  @keyframes blink { 50% { opacity: .2; } }
+
+  /* ---------- 스크롤 안내 ---------- */
+  .hint {
+    position: fixed; z-index: 15; left: 50%; bottom: 96px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 22px; border-radius: 999px;
+    background: var(--panel); box-shadow: 0 10px 30px -12px rgba(0,0,0,.2);
+    font-size: 13px; white-space: nowrap; pointer-events: none;
+    transition: opacity .6s ease, transform .6s ease;
+    animation: hintIn 1s 2.4s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .hint b { font-weight: 600; }
+  .hint em { font-style: normal; font-family: var(--kr); color: var(--muted); margin-left: 4px; }
+  .hint .arrow { display: inline-block; color: var(--accent); font-weight: 600; animation: nudgeL 1.4s ease-in-out infinite; }
+  .hint .arrow.r { animation-name: nudgeR; }
+  @keyframes nudgeL { 50% { transform: translateX(-5px); } }
+  @keyframes nudgeR { 50% { transform: translateX(5px); } }
+  @keyframes hintIn { from { opacity: 0; transform: translate(-50%, 20px); } }
+  .hint.dim { opacity: .45; }
+  .hint .mo { display: none; font-family: var(--kr); }
+  @media (max-width: 800px) { .hint .pc { display: none; } .hint .mo { display: inline; } }
+  body.full-mode .hint { opacity: 0; }
+
+  /* ---------- 3D 무대 + 바닥 그리드 ---------- */
+  .stage {
+    position: fixed; inset: 0;
+    perspective: 1100px; perspective-origin: 50% 45%;
+    touch-action: none;
+    transition: opacity .6s ease, transform .6s ease;
+  }
+  .floor {
+    position: absolute; left: -50%; right: -50%; bottom: -40%; height: 80%;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 120px 120px;
+    transform: rotateX(78deg); transform-origin: 50% 0;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 25%);
+            mask-image: linear-gradient(to bottom, transparent, #000 25%);
+  }
+  .ring { position: absolute; left: 50%; top: 46%; transform-style: preserve-3d; }
+
+  /* ---------- 카드 ---------- */
+  .card {
+    position: absolute;
+    width: 540px; height: 350px; margin: -175px 0 0 -270px;
+    border-radius: 24px; overflow: hidden;
+    backface-visibility: hidden;
+    box-shadow: 0 40px 70px -40px rgba(0,0,0,.35);
+    will-change: transform; user-select: none;
+    color: #151515;
+  }
+  .card .art { position: absolute; inset: 0; transition: transform .9s cubic-bezier(.2,.8,.2,1); }
+  .card:hover .art { transform: scale(1.04); }
+  .card-title {
+    position: absolute; left: 30px; bottom: 26px; z-index: 2;
+    font-size: 26px; font-weight: 500; letter-spacing: -.02em;
+  }
+  .card-num { position: absolute; left: 30px; top: 26px; z-index: 2; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
+  .card-go {
+    position: absolute; right: 26px; bottom: 28px; z-index: 2;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #151515; color: #fff; display: grid; place-items: center; font-size: 15px;
+    transition: transform .4s ease;
+  }
+  .card:hover .card-go { transform: rotate(-45deg); }
+
+  /* 공통: 프로필 일러스트 */
+  .portrait { position: relative; border-radius: 50%; overflow: hidden; background: linear-gradient(160deg, #c9b8ff, #ffc6b3); }
+  .portrait svg, .portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+  /* 01 About */
+  .art-about { background: #efe9ff; color: #1d1636; }
+  .art-about .portrait { position: absolute; left: 34px; top: 64px; width: 170px; height: 170px; box-shadow: 0 0 0 8px rgba(255,255,255,.6); }
+  .art-about .who { position: absolute; left: 236px; top: 70px; right: 28px; }
+  .art-about .who small { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; opacity: .6; }
+  .art-about .who h4 { font-family: var(--kr); font-size: 46px; font-weight: 700; letter-spacing: -.04em; line-height: 1.1; margin: 4px 0 2px; }
+  .art-about .who p { font-family: var(--serif); font-size: 22px; font-style: italic; }
+  .mini-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+  .mini-chips span { font-family: var(--kr); font-size: 12px; padding: 5px 11px; border-radius: 999px; background: rgba(255,255,255,.75); }
+
+  /* 02 Vision */
+  .art-vision { background: radial-gradient(circle at 70% 30%, #ffe3f0, transparent 55%), linear-gradient(135deg, #d7e8ff, #efe2ff); color: #16163a; }
+  .orbit { position: absolute; left: 50%; top: 46%; border-radius: 50%; border: 1px dashed rgba(22,22,58,.25); transform: translate(-50%,-50%); animation: spin 30s linear infinite; }
+  .orbit.o1 { width: 200px; height: 200px; }
+  .orbit.o2 { width: 320px; height: 320px; animation-duration: 45s; animation-direction: reverse; }
+  .orbit.o3 { width: 460px; height: 460px; animation-duration: 60s; }
+  .orbit::before { content: ""; position: absolute; top: -5px; left: 50%; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+  .orbit.o2::before { background: #6c5ce7; }
+  .orbit.o3::before { background: #16163a; }
+  @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+  .art-vision h4 { position: absolute; left: 0; right: 0; top: 30%; text-align: center; font-family: var(--serif); font-weight: 400; font-size: 56px; line-height: 1; }
+  .art-vision h4 em { color: #6c5ce7; }
+
+  /* 03 Journey */
+  .art-journey { background: #fff1d6; color: #2d1f05; }
+  .art-journey .big { position: absolute; left: 30px; top: 56px; font-family: var(--serif); font-size: 76px; line-height: 1; letter-spacing: -.03em; }
+  .art-journey .big em { color: var(--accent); }
+  .track { position: absolute; left: 30px; right: 30px; top: 208px; height: 1px; background: rgba(45,31,5,.3); }
+  .track span { position: absolute; top: -5px; width: 11px; height: 11px; border-radius: 50%; background: #fff1d6; border: 1.5px solid #2d1f05; }
+  .track span b { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 500; }
+  .track span.on { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 6px rgba(255,106,61,.2); }
+
+  /* 04 Work */
+  .art-work { background: #dff4e7; color: #0e2c1a; }
+  .tiles { position: absolute; left: 50%; top: 44%; }
+  .tile {
+    position: absolute; width: 150px; height: 170px; left: -75px; top: -85px;
+    border-radius: 16px; background: #fff; padding: 16px;
+    box-shadow: 0 20px 40px -20px rgba(14,44,26,.45);
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .tile small { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; opacity: .55; }
+  .tile strong { font-size: 34px; font-weight: 600; letter-spacing: -.04em; }
+  .tile span { font-family: var(--kr); font-size: 12px; line-height: 1.35; }
+  .tile.t1 { transform: translateX(-150px) rotate(-8deg); }
+  .tile.t2 { transform: translateY(-12px); background: #0e2c1a; color: #dff4e7; z-index: 2; }
+  .tile.t3 { transform: translateX(150px) rotate(8deg); }
+
+  /* L.live */
+  .art-live { background: linear-gradient(135deg, #7b5cff, #c9a7ff 60%, #ffb3c7); color: #fff; }
+  .art-live .badge {
+    position: absolute; right: 28px; top: 22px; z-index: 2;
+    background: #ff3b3b; border-radius: 999px; padding: 6px 12px 6px 22px;
+    font-size: 12px; font-weight: 600; letter-spacing: .08em;
+  }
+  .art-live .badge::before {
+    content: ""; position: absolute; left: 9px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px;
+    border-radius: 50%; background: #fff; animation: blink 1.2s infinite;
+  }
+  .art-live .screen {
+    position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
+    width: 62%; padding: 26px 0; border-radius: 18px;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.4);
+    backdrop-filter: blur(6px); text-align: center;
+  }
+  .art-live .screen strong { display: block; font-size: 64px; font-weight: 600; letter-spacing: -.05em; line-height: 1; margin: 6px 0; }
+  .art-live .on-air, .art-live .sub { font-family: var(--kr); font-size: 12px; letter-spacing: .06em; opacity: .9; }
+  .hearts { position: absolute; right: 44px; bottom: 80px; width: 30px; height: 140px; }
+  .hearts i { position: absolute; bottom: 0; left: 0; font-style: normal; font-size: 20px; color: #ff4f7a; animation: floatUp 3s ease-in infinite; opacity: 0; }
+  .hearts i:nth-child(2) { animation-delay: .75s; left: 10px; }
+  .hearts i:nth-child(3) { animation-delay: 1.5s; left: -6px; color: #fff; }
+  .hearts i:nth-child(4) { animation-delay: 2.25s; left: 6px; }
+  @keyframes floatUp { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-140px) scale(1.2); opacity: 0; } }
+
+  /* 05 Contact */
+  .art-contact { background: linear-gradient(135deg, #ffd8c7, #ffb59b); color: #3a1206; }
+  .art-contact h4 { position: absolute; left: 30px; top: 50px; font-family: var(--serif); font-weight: 400; font-size: 96px; line-height: .9; letter-spacing: -.03em; }
+  .art-contact h4 em { font-style: italic; }
+  .marquee { position: absolute; left: 0; right: 0; bottom: 92px; overflow: hidden; white-space: nowrap; border-block: 1px solid rgba(58,18,6,.2); padding: 8px 0; }
+  .marquee div { display: inline-block; animation: slide 14s linear infinite; font-size: 15px; font-family: var(--kr); }
+  .marquee div span { margin: 0 18px; }
+  @keyframes slide { to { transform: translateX(-50%); } }
+
+  /* ---------- FULL (목록 보기) ---------- */
+  .full {
+    position: fixed; inset: 0; z-index: 10;
+    padding: 110px 5vw 90px; overflow-y: auto;
+    opacity: 0; pointer-events: none; transform: translateY(30px);
+    transition: opacity .6s ease, transform .6s ease;
+  }
+  body.full-mode .full { opacity: 1; pointer-events: auto; transform: none; }
+  body.full-mode .stage { opacity: 0; transform: scale(.94); pointer-events: none; }
+  .full ul { list-style: none; border-top: 1px solid var(--grid); }
+  .full li {
+    display: grid; grid-template-columns: 70px 1fr auto; align-items: baseline; gap: 20px;
+    padding: 30px 0; border-bottom: 1px solid var(--grid); cursor: pointer;
+    transition: padding .4s ease, color .3s;
+  }
+  .full li:hover { padding-left: 16px; color: var(--accent); }
+  .full .n { font-size: 12px; color: var(--muted); }
+  .full h3 { font-size: clamp(30px, 5vw, 72px); font-weight: 500; letter-spacing: -.03em; line-height: 1; }
+  .full .t { font-family: var(--kr); font-size: 14px; color: var(--muted); }
+
+  /* ---------- 상세 패널 ---------- */
+  .modal {
+    position: fixed; inset: 0; z-index: 30;
+    background: rgba(20,20,20,.35); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; padding: 28px;
+    opacity: 0; pointer-events: none; transition: opacity .5s ease;
+  }
+  .modal.open { opacity: 1; pointer-events: auto; }
+  .panel {
+    position: relative; width: 100%; max-width: 1320px; height: 100%;
+    background: var(--panel); color: var(--fg); border-radius: 28px;
+    display: grid; grid-template-columns: 1fr 1.3fr; gap: 4vw;
+    padding: 56px; overflow: hidden;
+    transform: translateY(60px) scale(.96);
+    transition: transform .7s cubic-bezier(.2,.8,.2,1);
+  }
+  .modal.open .panel { transform: none; }
+  .panel-left { display: flex; flex-direction: column; }
+  .panel .eyebrow { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+  .panel h2 { font-size: clamp(44px, 5.4vw, 84px); font-weight: 500; letter-spacing: -.045em; line-height: .95; }
+  .panel h2 em { font-family: var(--serif); font-weight: 400; font-style: italic; letter-spacing: -.02em; }
+  .panel .desc { margin-top: 28px; font-family: var(--kr); font-size: 17px; line-height: 1.7; max-width: 520px; }
+  .chips { display: flex; gap: 6px; margin-top: 32px; flex-wrap: wrap; }
+  .chips span {
+    background: var(--chip); border-radius: 999px; padding: 9px 18px;
+    font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .chips .dot { width: 36px; height: 36px; padding: 0; background: var(--fg); color: var(--panel); display: grid; place-items: center; }
+  .nav-row { margin-top: auto; display: flex; gap: 10px; }
+  .nav-row button {
+    border: 1px solid var(--grid); border-radius: 999px; padding: 12px 20px;
+    font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
+    transition: background .3s, color .3s;
+  }
+  .nav-row button:hover { background: var(--fg); color: var(--panel); }
+
+  .panel-right { overflow-y: auto; padding-right: 64px; display: flex; flex-direction: column; gap: 22px; scrollbar-width: none; }
+  .panel-right::-webkit-scrollbar { display: none; }
+  .panel-right > * { flex: none; animation: up .8s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes up { from { opacity: 0; transform: translateY(30px); } }
+  .block { border-radius: 18px; background: var(--chip); padding: 34px; }
+  .block h5 { font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; }
+
+  .hero-shot { position: relative; aspect-ratio: 16 / 10; border-radius: 18px; overflow: hidden; }
+  .hero-shot .art { position: absolute; inset: 0; }
+
+  .facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--grid); border-radius: 18px; overflow: hidden; }
+  .facts div { background: var(--panel); padding: 22px 24px; }
+  .facts b { display: block; font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .facts span { font-family: var(--kr); font-size: 16px; }
+
+  .quote { font-family: var(--serif); font-size: 34px; line-height: 1.15; }
+  .quote small { display: block; margin-top: 14px; font-family: var(--sans); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+  .rows > div { display: grid; grid-template-columns: 56px 1fr; gap: 16px; padding: 20px 0; border-top: 1px solid var(--grid); }
+  .rows > div:first-child { border-top: none; padding-top: 0; }
+  .rows i { font-style: normal; font-size: 12px; color: var(--accent); font-weight: 600; padding-top: 5px; }
+  .rows strong { display: block; font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
+  .rows p { font-family: var(--kr); font-size: 15px; color: var(--muted); margin-top: 4px; line-height: 1.6; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stats div { border-radius: 18px; background: var(--chip); padding: 24px 20px; }
+  .stats strong { display: block; font-size: 40px; font-weight: 600; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  .stats span { font-family: var(--kr); font-size: 13px; color: var(--muted); }
+
+  .timeline { position: relative; padding-left: 30px; }
+  .timeline::before { content: ""; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 1px; background: var(--grid); }
+  .timeline > div { position: relative; padding-bottom: 28px; }
+  .timeline > div::before { content: ""; position: absolute; left: -29px; top: 7px; width: 11px; height: 11px; border-radius: 50%; background: var(--panel); border: 1.5px solid var(--fg); }
+  .timeline > div.now::before { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 6px rgba(255,106,61,.18); }
+  .timeline em { font-style: normal; font-size: 12px; font-weight: 600; letter-spacing: .08em; color: var(--accent); }
+  .timeline strong { display: block; font-size: 22px; font-weight: 500; letter-spacing: -.02em; margin-top: 4px; }
+  .timeline p { font-family: var(--kr); font-size: 15px; color: var(--muted); margin-top: 4px; }
+
+  .cases { display: grid; gap: 14px; }
+  .case { border-radius: 18px; padding: 30px; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; color: #151515; }
+  .case small { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
+  .case h6 { font-size: 26px; font-weight: 500; letter-spacing: -.02em; margin: 6px 0 8px; }
+  .case p { font-family: var(--kr); font-size: 14px; line-height: 1.6; opacity: .75; max-width: 420px; }
+  .case strong { font-size: 56px; font-weight: 600; letter-spacing: -.05em; line-height: 1; text-align: right; }
+  .case strong span { display: block; font-family: var(--kr); font-size: 12px; font-weight: 400; letter-spacing: 0; opacity: .6; margin-top: 6px; }
+
+  .links a {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 24px 0; border-top: 1px solid var(--grid);
+    font-size: clamp(26px, 3vw, 40px); font-weight: 500; letter-spacing: -.03em;
+    transition: padding .4s ease, color .3s;
+  }
+  .links a:last-child { border-bottom: 1px solid var(--grid); }
+  .links a:hover { padding-left: 14px; color: var(--accent); }
+  .links a small { font-size: 13px; font-weight: 400; letter-spacing: 0; color: var(--muted); }
+
+  .close {
+    position: absolute; top: 34px; right: 34px; z-index: 2;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--fg); color: var(--panel); font-size: 20px;
+    transition: transform .4s ease;
+  }
+  .close:hover { transform: rotate(90deg); }
+
+  /* ---------- 커스텀 커서 ---------- */
+  .cursor {
+    position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--fg); color: var(--bg);
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 600; letter-spacing: .08em;
+    transform: translate(-50%, -50%);
+    transition: width .35s ease, height .35s ease, background .3s;
+  }
+  .cursor span { opacity: 0; transition: opacity .2s; }
+  .cursor.label { width: 74px; height: 74px; }
+  .cursor.label span { opacity: 1; }
+  .cursor.hide { width: 0; height: 0; }
+  @media (hover: none) { .cursor { display: none; } }
+  @media (hover: hover) { .stage, .card { cursor: none; } }
+
+  /* ---------- 반응형 ---------- */
+  @media (max-width: 800px) {
+    .card { width: 310px; height: 220px; margin: -110px 0 0 -155px; }
+    .card-title { font-size: 18px; left: 20px; bottom: 18px; }
+    .card-num { left: 20px; top: 18px; }
+    .card-go { right: 18px; bottom: 18px; width: 30px; height: 30px; }
+    .art-about .portrait { left: 20px; top: 46px; width: 100px; height: 100px; }
+    .art-about .who { left: 140px; top: 46px; right: 16px; }
+    .art-about .who h4 { font-size: 28px; } .art-about .who p { font-size: 15px; }
+    .mini-chips { display: none; }
+    .art-vision h4 { font-size: 26px; }
+    .orbit { transform: translate(-50%,-50%) scale(.6); }
+    .art-journey .big { font-size: 44px; left: 20px; top: 44px; }
+    .track { top: 130px; left: 20px; right: 20px; }
+    .tiles { transform: scale(.58); }
+    .art-contact h4 { font-size: 58px; left: 20px; top: 40px; }
+    .card .art-live .screen strong { font-size: 36px; }
+    .card .art-live .screen { padding: 14px 0; width: 70%; }
+    .card .hearts { display: none; }
+    .marquee { bottom: 62px; }
+    .tc, .bc .name { display: none; }
+    .hint { bottom: 80px; font-size: 12px; padding: 10px 16px; }
+    .hint em { display: none; }
+    .panel { grid-template-columns: 1fr; padding: 32px 22px; overflow-y: auto; gap: 32px; }
+    .panel-right { overflow: visible; padding-right: 0; }
+    .nav-row { margin-top: 28px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .facts { grid-template-columns: 1fr; }
+    .case { grid-template-columns: 1fr; }
+    .case strong { text-align: left; }
+    .close { top: 18px; right: 18px; width: 44px; height: 44px; }
+  }
+</style>
+</head>
+
+<body>
+<!-- =========================================================
+     HTML : 구조 담당
+     ========================================================= -->
+
+<!-- 인트로 -->
+<div class="loader" id="loader">
+  <small>Geunhu Oh — Portfolio</small>
+  <div class="year" id="loaderYear">00</div>
+  <div class="bar"><i id="loaderBar"></i></div>
+</div>
+
+<!-- 커스텀 커서 -->
+<div class="cursor" id="cursor"><span id="cursorText">DRAG</span></div>
+
+<!-- 네 모서리 메뉴 -->
+<a class="corner tl" href="#">Geunhu Oh</a>
+<span class="corner tc">Portfolio — 2026</span>
+<button class="corner tr link" id="profileBtn">Profile</button>
+<div class="corner bl">
+  <button class="active" id="featuredBtn">Featured</button><span>/</span><button id="fullBtn">Full</button>
+</div>
+<div class="corner bc"><span class="idx" id="idx">01 / 05</span><span class="name" id="idxName">About</span></div>
+<div class="hint" id="hint">
+  <span class="arrow">←</span>
+  <span class="txt pc"><b>Scroll</b> or <b>drag</b> to explore <em>· 스크롤해서 둘러보세요</em></span>
+  <span class="txt mo"><b>Swipe</b> to explore · 옆으로 넘겨보세요</span>
+  <span class="arrow r">→</span>
+</div>
+<button class="corner br link" id="themeBtn">Dark mode</button>
+
+<!-- 프로필 일러스트 (사진 대신 사용할 SVG) -->
+<template id="portraitTpl">
+  <div class="portrait">
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <defs>
+        <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7d6c1"/><stop offset="1" stop-color="#ecbfa3"/></linearGradient>
+        <linearGradient id="suit" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8d7bd8"/><stop offset="1" stop-color="#5b4bb0"/></linearGradient>
+      </defs>
+      <!-- 단발머리 뒷머리 -->
+      <path d="M56 122 C48 72 68 36 100 36 C132 36 152 72 144 122 C140 128 130 128 126 120 L74 120 C70 128 60 128 56 122 Z" fill="#2a2230"/>
+      <!-- 목, 상의 -->
+      <rect x="89" y="110" width="22" height="26" rx="8" fill="#e8b89c"/>
+      <path d="M34 200 C38 154 64 136 100 136 C136 136 162 154 166 200 Z" fill="url(#suit)"/>
+      <path d="M78 138 C86 150 94 156 100 158 C106 156 114 150 122 138 C114 134 86 134 78 138 Z" fill="#fdf8f2"/>
+      <!-- 얼굴 -->
+      <ellipse cx="100" cy="86" rx="30" ry="36" fill="url(#skin)"/>
+      <!-- 앞머리 -->
+      <path d="M66 92 C60 56 80 42 102 42 C124 42 140 58 134 92 C130 76 122 64 108 60 C100 70 84 76 66 92 Z" fill="#2a2230"/>
+      <!-- 옆머리 (얼굴 옆으로 내려오는 단발) -->
+      <path d="M68 70 C62 90 62 110 66 122 L74 120 C70 104 70 88 74 74 Z" fill="#2a2230"/>
+      <path d="M132 70 C138 90 138 110 134 122 L126 120 C130 104 130 88 126 74 Z" fill="#2a2230"/>
+      <!-- 눈, 눈썹 -->
+      <path d="M84 91 Q88 87 92 91" stroke="#2a2230" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M108 91 Q112 87 116 91" stroke="#2a2230" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M83 80 Q88 78 93 80" stroke="#2a2230" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="M107 80 Q112 78 117 80" stroke="#2a2230" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <!-- 볼, 입 -->
+      <ellipse cx="82" cy="102" rx="6" ry="3.5" fill="#ff8c8c" opacity=".4"/>
+      <ellipse cx="118" cy="102" rx="6" ry="3.5" fill="#ff8c8c" opacity=".4"/>
+      <path d="M94 107 Q100 112 106 107" stroke="#d96a6a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <!-- 귀걸이 -->
+      <circle cx="70" cy="104" r="2.4" fill="#e8c26b"/>
+      <circle cx="130" cy="104" r="2.4" fill="#e8c26b"/>
+    </svg>
+    <!-- 같은 폴더에 profile.jpg 를 넣으면 자동으로 실제 사진이 보여요 -->
+    <img src="profile.jpg" alt="오근후 프로필 사진" onerror="this.remove()">
+  </div>
+</template>
+
+<!-- 곡면 카드 캐러셀 -->
+<div class="stage" id="stage">
+  <div class="floor"></div>
+  <div class="ring" id="ring">
+
+    <!-- 01 About -->
+    <article class="card" data-id="about">
+      <div class="art art-about">
+        <div class="portrait-slot"></div>
+        <div class="who">
+          <small>Hello, I'm</small>
+          <h4>오근후</h4>
+          <p>Business × AI Marketer</p>
+          <div class="mini-chips"><span>가천대학교</span><span>경영 · 글로벌경영</span><span>AI 부전공</span></div>
+        </div>
+      </div>
+      <span class="card-num">(01) About</span>
+      <span class="card-go">→</span>
+    </article>
+
+    <!-- 02 L.live -->
+    <article class="card" data-id="live">
+      <div class="art art-live">
+        <span class="badge">LIVE</span>
+        <div class="screen">
+          <span class="on-air">ON AIR · 파워퍼프걸</span>
+          <strong>L.live</strong>
+          <span class="sub">대학대전 2026</span>
+        </div>
+        <div class="hearts"><i>♥</i><i>♥</i><i>♥</i><i>♥</i></div>
+      </div>
+      <span class="card-num" style="color:#fff">(02) Live Commerce</span>
+      <h3 class="card-title" style="color:#fff">L.live 대학대전</h3>
+      <span class="card-go" style="background:#fff;color:#151515">→</span>
+    </article>
+
+    <!-- 03 Vision -->
+    <article class="card" data-id="vision">
+      <div class="art art-vision">
+        <i class="orbit o1"></i><i class="orbit o2"></i><i class="orbit o3"></i>
+        <h4>AI ×<br><em>Marketing</em></h4>
+      </div>
+      <span class="card-num">(03) Vision</span>
+      <h3 class="card-title">Vision</h3>
+      <span class="card-go">→</span>
+    </article>
+
+    <!-- 04 Journey -->
+    <article class="card" data-id="journey">
+      <div class="art art-journey">
+        <div class="big">Now <em>→</em> Next</div>
+        <div class="track">
+          <span class="on" style="left:0%"><b>NOW</b></span><span style="left:33%"><b>LEARN</b></span>
+          <span style="left:66%"><b>GROW</b></span><span style="left:calc(100% - 11px)"><b>GOAL</b></span>
+        </div>
+      </div>
+      <span class="card-num">(04) Journey</span>
+      <h3 class="card-title">The Journey</h3>
+      <span class="card-go">→</span>
+    </article>
+
+    <!-- 05 Focus -->
+    <article class="card" data-id="focus">
+      <div class="art art-work">
+        <div class="tiles">
+          <div class="tile t1"><small>01</small><strong>AI</strong><span>생성형 AI<br>콘텐츠</span></div>
+          <div class="tile t2"><small>02</small><strong>Data</strong><span>데이터 기반<br>의사결정</span></div>
+          <div class="tile t3"><small>03</small><strong>Brand</strong><span>브랜드 경험<br>설계</span></div>
+        </div>
+      </div>
+      <span class="card-num">(05) Focus</span>
+      <h3 class="card-title">Focus Areas</h3>
+      <span class="card-go">→</span>
+    </article>
+
+    <!-- 05 Contact -->
+    <article class="card" data-id="contact">
+      <div class="art art-contact">
+        <h4>Say<br><em>hello.</em></h4>
+        <div class="marquee"><div>
+          <span>Hello</span>✦<span>안녕하세요</span>✦<span>こんにちは</span>✦<span>Contact</span>✦
+          <span>Hello</span>✦<span>안녕하세요</span>✦<span>こんにちは</span>✦<span>Contact</span>✦
+        </div></div>
+      </div>
+      <span class="card-num">(06) Contact</span>
+      <h3 class="card-title">Get in touch</h3>
+      <span class="card-go">→</span>
+    </article>
+  </div>
+</div>
+
+<!-- FULL 목록 보기 -->
+<section class="full" id="full"><ul id="fullList"></ul></section>
+
+<!-- 상세 패널 -->
+<div class="modal" id="modal">
+  <div class="panel">
+    <button class="close" id="closeBtn" aria-label="닫기">✕</button>
+    <div class="panel-left">
+      <p class="eyebrow" id="mEyebrow"></p>
+      <h2 id="mTitle"></h2>
+      <p class="desc" id="mDesc"></p>
+      <div class="chips" id="mChips"></div>
+      <div class="nav-row">
+        <button id="prevBtn">← Prev</button>
+        <button id="nextBtn">Next →</button>
+      </div>
+    </div>
+    <div class="panel-right" id="mBody"></div>
+  </div>
+</div>
+
+<!-- =========================================================
+     JavaScript : 기능 담당
+     ========================================================= -->
+<script>
+  /* ---------- 0. 프로필 일러스트 넣기 ---------- */
+  const portraitHTML = document.getElementById("portraitTpl").innerHTML;
+  document.querySelectorAll(".portrait-slot").forEach(s => s.outerHTML = portraitHTML);
+
+  /* ---------- 1. 상세 패널 내용 (2035년의 미래 버전) ---------- */
+  const order = ["about", "live", "vision", "journey", "focus", "contact"];
+  const details = {
+    about: {
+      eyebrow: "(01) About",
+      title: "오근후<br><em>Geunhu Oh</em>",
+      desc: "경영학과 AI 사이에서 일하는 마케터. 가천대학교에서 경영학과 글로벌경영학을 전공하고 AI를 부전공하며, 데이터와 생성형 AI로 브랜드와 사람을 잇는 방법을 고민해 왔습니다.",
+      chips: ["Business", "AI", "Marketing"],
+      body: `
+        <div class="hero-shot"><div class="art" style="background:linear-gradient(135deg,#efe9ff,#ffe4d9);display:grid;place-items:center">
+          <div style="height:78%;aspect-ratio:1">${portraitHTML.replace('class="portrait"', 'class="portrait" style="width:100%;height:100%;box-shadow:0 0 0 12px rgba(255,255,255,.6)"')}</div>
+        </div></div>
+        <div class="facts">
+          <div><b>University</b><span>가천대학교</span></div>
+          <div><b>Major</b><span>경영학 · 글로벌경영학</span></div>
+          <div><b>Minor</b><span>인공지능(AI)</span></div>
+          <div><b>Languages</b><span>한국어 · English · 日本語</span></div>
+          <div><b>Focus</b><span>AI 마케팅 · 브랜드 전략</span></div>
+          <div><b>Based in</b><span>Seoul → Global</span></div>
+        </div>
+        <div class="block"><h5>Currently</h5><div class="rows">
+          <div><i>01</i><div><strong>Studying</strong><p>경영학 · 글로벌경영학 전공, AI 부전공</p></div></div>
+          <div><i>02</i><div><strong>Doing</strong><p>공모전과 대외활동 (L.live 대학대전 등)</p></div></div>
+          <div><i>03</i><div><strong>Learning</strong><p>생성형 AI 활용, 데이터 분석, 웹 기초</p></div></div>
+        </div></div>`
+    },
+    vision: {
+      eyebrow: "(03) Vision",
+      title: "AI ×<br><em>Marketing</em>",
+      desc: "경영학을 바탕으로 AI를 활용할 줄 아는 마케터가 되는 것이 목표입니다. 데이터를 읽고, 새로운 AI 도구를 직접 써 보면서 마케팅에 어떻게 적용할 수 있을지 공부하고 있어요.",
+      chips: ["Goal", "AI Marketer"],
+      body: `
+        <div class="block"><h5>How I work</h5><div class="rows">
+          <div><i>01</i><div><strong>Check the data</strong><p>판단하기 전에 데이터부터 확인하기</p></div></div>
+          <div><i>02</i><div><strong>Try it myself</strong><p>새로운 도구는 일단 직접 써 보기</p></div></div>
+          <div><i>03</i><div><strong>Think like a user</strong><p>만드는 사람보다 쓰는 사람 입장에서 보기</p></div></div>
+        </div></div>
+        <div class="block"><h5>Keywords</h5><div class="mini-chips" style="margin:0">
+          <span style="background:var(--panel)">AI 마케팅</span><span style="background:var(--panel)">데이터 분석</span><span style="background:var(--panel)">브랜딩</span>
+          <span style="background:var(--panel)">라이브 커머스</span><span style="background:var(--panel)">글로벌 비즈니스</span><span style="background:var(--panel)">생성형 AI</span>
+        </div></div>`
+    },
+    journey: {
+      eyebrow: "(04) Journey",
+      title: "Now <em>→</em> Next",
+      desc: "지금 하고 있는 것과 앞으로 해 보고 싶은 것들을 정리했어요.",
+      chips: ["Now", "Next", "Goal"],
+      body: `
+        <div class="block"><h5>Roadmap</h5><div class="timeline">
+          <div class="now"><em>Now · 2026</em><strong>Business × AI</strong><p>가천대학교 경영학·글로벌경영학 전공, AI 부전공. 공모전과 대외활동으로 직접 부딪혀 보는 중.</p></div>
+          <div><em>Learn</em><strong>현장 경험 쌓기</strong><p>마케팅 인턴십과 프로젝트로 실제 데이터와 캠페인을 경험하기.</p></div>
+          <div><em>Grow</em><strong>글로벌 감각 키우기</strong><p>영어·일본어를 무기로 해외 시장과 문화를 더 가까이 이해하기.</p></div>
+          <div><em>Goal</em><strong>Global AI Marketer</strong><p>글로벌 기업에서 데이터와 AI로 브랜드와 사람을 잇는 마케터.</p></div>
+        </div></div>`
+    },
+    live: {
+      eyebrow: "(02) Live Commerce · 2026",
+      title: "L.live<br>대학대전",
+      desc: "롯데홈쇼핑 엘라이브 대학대전에 팀 파워퍼프걸의 MD로 참여하고 있습니다. 라이브 커머스 방송을 기획하고, 함께할 파트너 브랜드를 찾아 제안하는 역할을 맡았어요.",
+      chips: ["Lotte Homeshopping", "MD", "2026"],
+      body: `
+        <div class="hero-shot"><div class="art art-live">
+          <span class="badge">LIVE</span>
+          <div class="screen"><span class="on-air">ON AIR · 파워퍼프걸</span><strong>L.live</strong><span class="sub">대학대전 2026</span></div>
+          <div class="hearts"><i>♥</i><i>♥</i><i>♥</i><i>♥</i></div>
+        </div></div>
+        <div class="facts">
+          <div><b>Program</b><span>롯데홈쇼핑 엘라이브 대학대전</span></div>
+          <div><b>Team</b><span>파워퍼프걸 (가천대 경영)</span></div>
+          <div><b>Role</b><span>MD · 파트너 브랜드 제휴</span></div>
+          <div><b>Format</b><span>라이브 커머스 방송 기획</span></div>
+        </div>
+        <div class="block"><h5>What I do</h5><div class="rows">
+          <div><i>01</i><div><strong>Brand Outreach</strong><p>방송에 함께할 파트너 브랜드 찾기와 제안</p></div></div>
+          <div><i>02</i><div><strong>Broadcast Planning</strong><p>라이브 방송 컨셉과 구성 기획</p></div></div>
+          <div><i>03</i><div><strong>Teamwork</strong><p>팀원들과 역할을 나눠 준비 과정 조율</p></div></div>
+        </div></div>`
+    },
+    focus: {
+      eyebrow: "(05) Focus Areas",
+      title: "Focus<br><em>Areas</em>",
+      desc: "요즘 가장 관심 있게 공부하고 있는 세 가지. 경영학의 시선에 AI라는 도구를 더해, 마케팅을 조금 다르게 해 보고 싶습니다.",
+      chips: ["AI", "Data", "Brand"],
+      body: `
+        <div class="cases">
+          <div class="case" style="background:#ffe1d6"><div><small>01 · AI</small><h6>Generative AI for Content</h6><p>생성형 AI로 아이디어를 빠르게 시각화하고, 콘텐츠를 더 다양하게 실험하는 방법.</p></div><strong>AI</strong></div>
+          <div class="case" style="background:#dff4e7"><div><small>02 · Data</small><h6>Data-driven Decisions</h6><p>감이 아니라 숫자로 근거를 만드는 마케팅. 데이터를 모으고 읽고 설명하는 힘.</p></div><strong>Data</strong></div>
+          <div class="case" style="background:#e5e6ff"><div><small>03 · Brand</small><h6>Brand Experience</h6><p>사람들이 브랜드를 만나는 순간을 설계하기. 굿즈, 패키지, 라이브 방송까지.</p></div><strong>Brand</strong></div>
+        </div>
+        <div class="block"><h5>Toolkit</h5><div class="mini-chips" style="margin:0">
+          <span style="background:var(--panel)">Generative AI</span><span style="background:var(--panel)">Python</span><span style="background:var(--panel)">Excel</span>
+          <span style="background:var(--panel)">Notion</span><span style="background:var(--panel)">HTML · CSS · JS</span><span style="background:var(--panel)">English</span><span style="background:var(--panel)">日本語</span>
+        </div></div>`
+    },
+    contact: {
+      eyebrow: "(06) Contact",
+      title: "Let's<br><em>talk.</em>",
+      desc: "경영, 마케팅, AI에 관심 있는 분이라면 누구든 반가워요. 공모전이나 프로젝트 팀원, 커피챗 모두 편하게 연락 주세요.",
+      chips: ["Say hello"],
+      body: `
+        <div class="links">
+          <a href="mailto:your@email.com">Email <small>your@email.com ↗</small></a>
+          <a href="https://www.linkedin.com/" target="_blank">LinkedIn <small>Geunhu Oh ↗</small></a>
+          <a href="https://github.com/" target="_blank">GitHub <small>Projects ↗</small></a>
+          <a href="https://www.instagram.com/" target="_blank">Instagram <small>Daily ↗</small></a>
+        </div>
+        <div class="block"><h5>Open to</h5><div class="rows">
+          <div><i>01</i><div><strong>Competitions & Projects</strong><p>마케팅·데이터·AI 공모전과 프로젝트 팀</p></div></div>
+          <div><i>02</i><div><strong>Study</strong><p>생성형 AI, 데이터 분석을 함께 공부할 사람</p></div></div>
+          <div><i>03</i><div><strong>Coffee Chat</strong><p>경영과 AI 사이의 길이 궁금한 누구든</p></div></div>
+        </div></div>`
+    }
+  };
+
+  /* ---------- 2. 인트로: 00 → 100 ---------- */
+  const loader = document.getElementById("loader");
+  const loaderYear = document.getElementById("loaderYear");
+  document.getElementById("loaderBar").style.width = "100%";
+  let year = 0;
+  const yearTimer = setInterval(() => {
+    year += 5;
+    loaderYear.textContent = String(year).padStart(2, "0");
+    if (year >= 100) {
+      clearInterval(yearTimer);
+      setTimeout(() => { loader.classList.add("done"); target = 0; }, 400);
+    }
+  }, 70);
+
+  /* ---------- 3. 곡면 캐러셀 ---------- */
+  const stage = document.getElementById("stage");
+  const ring = document.getElementById("ring");
+  // 카드가 끊김 없이 돌도록 한 번 더 복제
+  [...ring.children].forEach(c => ring.appendChild(c.cloneNode(true)));
+  const cards = [...document.querySelectorAll(".card")];
+  const isMobile = () => window.innerWidth <= 800;
+  const gap = () => isMobile() ? 340 : 580;
+  const radius = () => isMobile() ? 700 : 1300;
+
+  let pos = -2400, target = -2400;   // 인트로가 끝나면 0으로 휙 돌아오기
+
+  function layout() {
+    const G = gap(), R = radius(), total = G * cards.length;
+    cards.forEach((card, i) => {
+      let x = i * G - pos;
+      x = ((x % total) + total) % total;
+      if (x > total / 2) x -= total;
+      const angle = x / R;
+      const tx = Math.sin(angle) * R;
+      const tz = (1 - Math.cos(angle)) * R * 0.9;
+      card.style.transform = `translate3d(${tx}px,0,${tz}px) rotateY(${-angle * 57.3}deg)`;
+      card.style.zIndex = Math.round(1000 - Math.abs(x));
+      card.style.opacity = Math.abs(angle) > 1.25 ? 0 : 1;
+    });
+    // 하단 가운데 번호 표시
+    const n = order.length;
+    const i = ((Math.round(pos / G) % n) + n) % n;
+    idx.textContent = `0${i + 1} / 0${n}`;
+    idxName.textContent = order[i].charAt(0).toUpperCase() + order[i].slice(1);
+  }
+  const idx = document.getElementById("idx");
+  const idxName = document.getElementById("idxName");
+
+  (function loop() {
+    pos += (target - pos) * 0.07;
+    layout();
+    // 한 번 둘러보고 나면 안내 문구를 흐리게
+    if (loader.classList.contains("done") && Math.abs(target) > gap() * 1.5) document.getElementById("hint").classList.add("dim");
+    requestAnimationFrame(loop);
+  })();
+
+  const busy = () => modal.classList.contains("open") || document.body.classList.contains("full-mode");
+  window.addEventListener("wheel", (e) => {
+    if (busy()) return;
+    target += (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * 1.2;
+  }, { passive: true });
+
+  let dragging = false, startX = 0, startTarget = 0, moved = 0;
+  stage.addEventListener("pointerdown", (e) => { dragging = true; moved = 0; startX = e.clientX; startTarget = target; });
+  window.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    moved = Math.max(moved, Math.abs(dx));
+    target = startTarget - dx * 1.6;
+  });
+  window.addEventListener("pointerup", () => {
+    dragging = false;
+    if (moved > 6) target = Math.round(target / gap()) * gap();   // 가장 가까운 카드에 맞추기
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (modal.classList.contains("open")) {
+      if (e.key === "Escape") closeModal();
+      if (e.key === "ArrowRight") step(1);
+      if (e.key === "ArrowLeft") step(-1);
+      return;
+    }
+    if (e.key === "ArrowRight") target = Math.round(target / gap()) * gap() + gap();
+    if (e.key === "ArrowLeft")  target = Math.round(target / gap()) * gap() - gap();
+  });
+
+  /* ---------- 4. 상세 패널 ---------- */
+  const modal = document.getElementById("modal");
+  let current = 0;
+
+  function countUp() {
+    document.querySelectorAll("#mBody [data-count]").forEach(el => {
+      const end = parseFloat(el.dataset.count), dec = +(el.dataset.dec || 0), suf = el.dataset.suffix || "";
+      const t0 = performance.now();
+      (function tick(t) {
+        const p = Math.min((t - t0) / 1200, 1), e = 1 - Math.pow(1 - p, 3);
+        el.textContent = (end * e).toFixed(dec) + suf;
+        if (p < 1) requestAnimationFrame(tick);
+      })(t0);
+    });
+  }
+
+  function openModal(id) {
+    const d = details[id];
+    current = order.indexOf(id);
+    document.getElementById("mEyebrow").textContent = d.eyebrow;
+    document.getElementById("mTitle").innerHTML = d.title;
+    document.getElementById("mDesc").textContent = d.desc;
+    document.getElementById("mChips").innerHTML = `<span class="dot">↗</span>` + d.chips.map(c => `<span>${c}</span>`).join("");
+    const body = document.getElementById("mBody");
+    body.innerHTML = d.body;
+    body.scrollTop = 0;
+    [...body.children].forEach((el, i) => el.style.animationDelay = (0.15 + i * 0.1) + "s");
+    modal.classList.add("open");
+    cursor.classList.remove("label");
+    countUp();
+  }
+  function closeModal() { modal.classList.remove("open"); }
+  function step(dir) {
+    const n = order.length;
+    current = (current + dir + n) % n;
+    target = Math.round(target / gap()) * gap() + dir * gap();
+    openModal(order[current]);
+  }
+
+  cards.forEach((card) => {
+    card.addEventListener("click", () => {
+      if (moved > 6) return;
+      const G = gap(), total = G * cards.length, i = cards.indexOf(card);
+      let x = i * G - pos; x = ((x % total) + total) % total; if (x > total / 2) x -= total;
+      target = pos + x;                                     // 누른 카드를 가운데로
+      setTimeout(() => openModal(card.dataset.id), 280);
+    });
+  });
+  document.getElementById("closeBtn").addEventListener("click", closeModal);
+  document.getElementById("prevBtn").addEventListener("click", () => step(-1));
+  document.getElementById("nextBtn").addEventListener("click", () => step(1));
+  modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+  document.getElementById("profileBtn").addEventListener("click", () => openModal("about"));
+
+  /* ---------- 5. FEATURED / FULL ---------- */
+  const featuredBtn = document.getElementById("featuredBtn");
+  const fullBtn = document.getElementById("fullBtn");
+  const summary = { about: "경영학 × AI, 오근후", vision: "사람의 통찰, AI의 확장", journey: "지금, 그리고 다음", live: "L.live 대학대전, 첫 라이브 커머스", focus: "AI · Data · Brand", contact: "편하게 연락 주세요" };
+  document.getElementById("fullList").innerHTML = order.map((id, i) =>
+    `<li data-id="${id}"><span class="n">(0${i + 1})</span><h3>${id.charAt(0).toUpperCase() + id.slice(1)}</h3><span class="t">${summary[id]}</span></li>`
+  ).join("");
+  document.querySelectorAll("#fullList li").forEach(li => li.addEventListener("click", () => openModal(li.dataset.id)));
+  fullBtn.addEventListener("click", () => { document.body.classList.add("full-mode"); fullBtn.classList.add("active"); featuredBtn.classList.remove("active"); });
+  featuredBtn.addEventListener("click", () => { document.body.classList.remove("full-mode"); featuredBtn.classList.add("active"); fullBtn.classList.remove("active"); });
+
+  /* ---------- 6. 다크모드 / 라이트모드 ---------- */
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("themeBtn");
+  themeBtn.addEventListener("click", () => {
+    const dark = root.dataset.theme === "dark";
+    root.dataset.theme = dark ? "light" : "dark";
+    themeBtn.textContent = dark ? "Dark mode" : "Light mode";
+  });
+
+  /* ---------- 7. 커스텀 커서 (DRAG / OPEN) ---------- */
+  const cursor = document.getElementById("cursor");
+  const cursorText = document.getElementById("cursorText");
+  document.addEventListener("mousemove", (e) => {
+    cursor.style.left = e.clientX + "px";
+    cursor.style.top = e.clientY + "px";
+    const onCard = e.target.closest(".card");
+    const onStage = e.target.closest(".stage");
+    cursor.classList.toggle("label", !!(onCard || onStage) && !busy());
+    cursorText.textContent = onCard ? "OPEN" : "DRAG";
+  });
+</script>
+</body>
+</html>
